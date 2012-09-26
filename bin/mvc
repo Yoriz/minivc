@@ -1,0 +1,119 @@
+#!/usr/local/bin/python2.7
+from genericpath import  isfile, isdir
+from termcolor import colored
+from os import getcwd, listdir, chdir
+from os.path import dirname, join
+from argh import command
+import sys
+
+notes_file = 'notes.py'
+commands_file = 'app.py'
+commands_var = 'commands'
+controller_file = 'controller.py'
+controller_dir = 'controller'
+command_template = """from minivc.mvc import Command\n
+class {0}(Command):
+    def handle_note(self, note):
+        pass\n\n\n"""
+
+@command
+def rmcmd(name):
+    # todo implement me
+    pass
+
+@command
+def cmd(name):
+    """add a new controller and associated entries with given name"""
+    name = name.lower()
+    root = get_root_path()
+    chdir(root)
+    has_notes = isfile(notes_file)
+    has_controller_file = isfile(controller_file)
+    has_controller_dir = isdir(controller_dir)
+    class_name = name.replace('_', ' ').title().replace(' ', '') + 'Command'
+    file_path = controller_file if has_controller_file else join(controller_dir, name + '_command.py')
+
+    if not has_notes:
+        error("couldn't find {0} in {1}.".format(notes_file, root))
+    if not (has_controller_file or has_controller_dir):
+        error("couldn't find {0} or dir {1} in {2}.".format(controller_file, controller_dir, root))
+    if has_controller_file and has_controller_dir:
+        error('you can have both a controller file and a controller dir.')
+
+    msg = 'add {0} to {1} for note {2}? [y/n] '
+    text = [colored(text, 'magenta') for text in (class_name, file_path, name)]
+    if not 'y' is raw_input(msg.format(*text)):
+        print 'you decided to abort.'
+        sys.exit(0)
+
+    update_notes_file(name)
+    update_commands_list(class_name, file_path, name)
+    if has_controller_file:
+        update_controller_file(class_name)
+    elif has_controller_dir:
+        add_new_command_file(file_path, class_name, root)
+    print colored('success!','cyan')
+
+def get_root_path():
+    path = startpath = getcwd()
+    for _ in range(10):
+        if 'app.py' in listdir(path):
+            return path
+        path = dirname(path)
+    error('app root not found. search 10 levels above: {0}'.format(startpath))
+
+def update_notes_file(name):
+    with open(notes_file, 'a') as file: # write notes file
+        file.write("{0} = '{0}'\n".format(name))
+
+def update_commands_list(class_name, file_path, name):
+    with open(commands_file) as file: # add entry to commands list
+        lines = file.readlines()
+        for i, line in enumerate(lines):
+            if all(x in line for x in (commands_var, '=', '[')): # found the first line of list definition
+                lines.insert(i + 1, ' ' * 4 + '({0}.{1}, {2}),\n'.format(notes_file.split('.')[0], name, class_name))
+                break
+        else:
+            msg = 'sorry, you must have an existing commands list. not found in {0}'
+            error(msg.format(commands_file))
+        src = file_path.replace('/', '.').split('.')[0]
+        for i, line in enumerate(lines):
+            if 'from {0}'.format(src) in line:
+                lines[i] = '{0}, {1}\n'.format(line.strip(), class_name)
+                break
+        else:
+            lines.insert(0, 'from {0} import {1}\n'.format(src, class_name))
+    with open(commands_file, 'w') as file: # write commands list
+        file.writelines(lines)
+
+def update_controller_file(name):
+    with open(controller_file) as file:
+        lines = file.readlines()
+        template = command_template.format(name)
+        template = '\n'.join(template.splitlines()[2:]) # drop the imports
+        for i, line in enumerate(lines):
+            if '(Command):' in line: # insert new command above the first existing
+                lines.insert(i, template)
+                break
+        else:
+            lines.append(template) # it didnt have any commands
+    with open(controller_file, 'w') as file: # write controller file
+        file.writelines(lines)
+
+def add_new_command_file(file_path, name, root):
+    path = join(root, file_path)
+    with open(path, 'w') as file:
+        file.write(command_template.format(name))
+
+def error(msg):
+    print '\nERROR\n'
+    print msg
+    sys.exit(1)
+
+
+if __name__ == '__main__':
+    from nts.util.shell import Parser
+    msg = 'a tool to automate some of the (minimal) boilerplate with MiniVC'
+    Parser([cmd], description=msg)
+
+
