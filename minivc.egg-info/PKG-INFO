@@ -1,0 +1,13 @@
+Metadata-Version: 1.0
+Name: minivc
+Version: 0.1.02
+Summary: a minimal mvc library, with zero frameworks attached.
+Home-page: http://pypi.python.org/pypi/minivc/
+Author: Nathan ToddStone
+Author-email: me@nathants.com
+License: LICENSE.txt
+Description: **MiniVC - a minimal mvc library, with zero frameworks attached.**
+        
+        throw your code like laundry into three piles. let them pass messages and have triggers. life is grand.
+        
+Platform: UNKNOWN
