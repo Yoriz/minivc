@@ -1,6 +1,6 @@
 import minivc.mvc
 from minivc.mvc import Command, Duplicate, NotFound, get_view, get_facade, get_controller, get_model
-from nts.lib.unittest import TestCase
+from nathants.lib.unittest import TestCase
 
 class TestMvc(TestCase):
     def setup(self):

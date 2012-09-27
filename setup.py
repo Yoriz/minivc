@@ -3,12 +3,12 @@ from setuptools import find_packages
 
 setup(
     name='minivc',
-    version='0.1.02',
+    version='0.1.03',
     author='Nathan ToddStone',
     author_email='me@nathants.com',
     packages=find_packages(),
     scripts=['bin/mvc'],
-    url='http://pypi.python.org/pypi/minivc/',
+    url='http://github.com/nathants/minivc',
     license='LICENSE.txt',
     description='a minimal mvc library, with zero frameworks attached.',
     long_description=open('README.rst').read(),

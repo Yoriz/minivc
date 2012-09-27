@@ -112,7 +112,7 @@ def error(msg):
 
 
 if __name__ == '__main__':
-    from nts.util.shell import Parser
+    from nathants.util.shell import Parser
     msg = 'a tool to automate some of the (minimal) boilerplate with MiniVC'
     Parser([cmd], description=msg)
 
