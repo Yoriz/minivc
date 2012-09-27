@@ -1,6 +1,6 @@
 """
-MiniVC - a simple, small, MVC library for python. no frameworks of any kind included.
-mvc. if nothing else, we can throw the laundry that is our code into three different piles.
+MiniVC - a small and simple, mvc library for python. it doesn't do much. thats a feature.
+mvc, so if nothing else, we can throw the laundry that is our code into three different piles.
 inspired by puremvc python by Toby de Havilland <toby.de.havilland@puremvc.org>
 """
 
