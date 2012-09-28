@@ -1,5 +1,5 @@
 import minivc.mvc
-from minivc.mvc import Command, Duplicate, NotFound, get_view, get_facade, get_controller, get_model
+from minivc.mvc import get_view, get_facade, get_controller, get_model, register_command, Mediator, Proxy
 from nathants.lib.unittest import TestCase
 
 class TestMvc(TestCase):
@@ -14,38 +14,38 @@ class TestMvc(TestCase):
 
     def test_controller(self):
         c = get_controller()
+        f = get_facade()
 
-        class Cmd(object):
-            output = ''
-            body = None
+        f.output = ''
+        f.body = None
+        name = 'cmd'
 
-            def handle_note(self, note):
-                if not self.output and not self.body:
-                    Cmd.output = 'handled'
-                    Cmd.body = note['body']
-                else:
-                    Cmd.output = ''
-                    Cmd.body = None
+        @register_command(name)
+        def command(f, note):
+            if not f.output:
+                f.output = 'handled'
+                f.body = note['body']
+            else:
+                f.output = ''
+                f.body = None
 
-        name_ctrl_class = 'cmd'
-        c.register_command(name_ctrl_class, Cmd)
-        self.assert_raises(Duplicate, lambda: c.register_command(name_ctrl_class, Cmd))
-        note = { 'name': name_ctrl_class, 'body': 123 }
+        self.assert_raises(AssertionError, lambda: c.register_command(name, command))
+        note = { 'name': name, 'body': 123 }
         c.handle_note(note)
-        assert Cmd.output is 'handled'
-        assert Cmd.body is 123
+        assert f.output is 'handled'
+        assert f.body is 123
         c.handle_note(note)
-        assert Cmd.output is ''
-        assert Cmd.body is None
-        c.remove_command(name_ctrl_class)
-        self.assert_raises(NotFound, lambda: c.handle_note(note))
-        assert Cmd.output is ''
-        assert Cmd.body is None
+        assert f.output is ''
+        assert f.body is None
+        c.remove_command(name)
+        self.assert_raises(AssertionError, lambda: c.handle_note(note))
+        assert f.output is ''
+        assert f.body is None
 
         facade = get_facade()
         facade.output = ''
 
-        def cmd(facade):
+        def cmd(facade, note):
             if facade.output is '':
                 facade.output = 'handled'
             else:
@@ -58,7 +58,7 @@ class TestMvc(TestCase):
         c.handle_note(note)
         assert facade.output is 'handled'
         c.remove_command(name_ctrl_func)
-        self.assert_raises(NotFound, lambda: c.remove_command(name_ctrl_func))
+        self.assert_raises(AssertionError, lambda: c.remove_command(name_ctrl_func))
         assert facade.output is 'handled'
 
 
@@ -66,15 +66,14 @@ class TestMvc(TestCase):
         m = get_model()
         proxy_name = 'some_proxy'
 
-        class Proxy(object):
+        class Prx(Proxy):
             name = proxy_name
 
             def on_register(self): pass
 
             def on_remove(self): pass
 
-
-        proxy = Proxy()
+        proxy = Prx()
         m.register_proxy(proxy)
         assert proxy is m.get_proxy(proxy_name)
         m.remove_proxy(proxy_name)
@@ -94,7 +93,7 @@ class TestMvc(TestCase):
         note = { 'name': note_name, 'body': None }
         observer = { 'func': func, 'obj': self }
         v.register_observer(note_name, observer)
-        self.assert_raises(Duplicate, lambda: v.register_observer(note_name, observer))
+        self.assert_raises(AssertionError, lambda: v.register_observer(note_name, observer))
         v.notify_observers(note)
         assert 'called' is self.output
         v.remove_observer(note_name, self)
@@ -104,7 +103,7 @@ class TestMvc(TestCase):
 
         mediator_name = 'some_mediator'
 
-        class Mediator(object):
+        class Med(Mediator):
             interests = [note_name]
             name = mediator_name
             output = ''
@@ -114,29 +113,30 @@ class TestMvc(TestCase):
             def on_remove(self): pass
 
             def handle_note(self, note):
-                if not Mediator.output:
-                    Mediator.output = note['name']
+                if not Med.output:
+                    Med.output = note['name']
                 else:
-                    Mediator.output = ''
+                    Med.output = ''
 
-        mediator = Mediator()
+        mediator = Med()
         v.register_mediator(mediator)
-        self.assert_raises(Duplicate, lambda: v.register_mediator(mediator))
+        self.assert_raises(AssertionError, lambda: v.register_mediator(mediator))
         assert mediator is v.get_mediator(mediator_name)
-        assert '' is Mediator.output
+        assert '' is Med.output
         v.notify_observers(note)
-        assert note_name is Mediator.output
+        assert note_name is Med.output
         v.remove_mediator(mediator_name)
-        self.assert_raises(NotFound, lambda: v.remove_mediator(mediator_name))
+        self.assert_raises(AssertionError, lambda: v.remove_mediator(mediator_name))
         assert v.get_mediator(mediator_name) is None
         v.notify_observers(note)
-        assert note_name is Mediator.output
+        assert note_name is Med.output
 
     def test_facade(self):
+        f = get_facade()
         mediator_name = 'some_mediator'
         note_name = 'cmd1'
 
-        class Mediator(object):
+        class Med(Mediator):
             interests = [note_name]
             name = mediator_name
             output = ''
@@ -146,30 +146,29 @@ class TestMvc(TestCase):
             def on_remove(self): pass
 
             def handle_note(self, note):
-                if not Mediator.output:
-                    Mediator.output = note['name']
+                if not Med.output:
+                    Med.output = note['name']
                 else:
-                    Mediator.output = ''
+                    Med.output = ''
 
-        class Command1(Command):
-            output = ''
+        f.output = ''
+        
+        @register_command(note_name)
+        def command(f, note):
+            if not f.output:
+                f.output = 'handled'
+            else:
+                f.output = ''
 
-            def handle_note(self, note):
-                if not self.output:
-                    Command1.output = 'handled'
-                else:
-                    Command1.output = ''
-
-        f = get_facade([(note_name, Command1), ])
-        f.register_mediator(Mediator())
-        assert '' is Command1.output is Mediator.output
+        f.register_mediator(Med())
+        assert '' is f.output is Med.output
         f.send_note(note_name)
-        assert 'handled' is Command1.output and note_name is Mediator.output
+        assert 'handled' is f.output# and note_name is Med.output
         f.send_note(note_name)
-        assert '' is Command1.output is Mediator.output
+        assert '' is f.output is Med.output
         f.remove_mediator(mediator_name)
         f.send_note(note_name)
-        assert 'handled' is Command1.output and '' is Mediator.output
+        assert 'handled' is f.output and '' is Med.output
 
 if __name__ == '__main__':
     TestMvc()._run_all()

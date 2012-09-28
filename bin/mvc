@@ -17,6 +17,11 @@ class {0}(Command):
         pass\n\n\n"""
 
 @command
+def scaffold(name):
+    # todo implement me. super simple app. startup, and action notes. echos raw_input back with a "thankyou"
+    pass
+
+@command
 def rmcmd(name):
     # todo implement me
     pass

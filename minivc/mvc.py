@@ -8,21 +8,11 @@ inspired by puremvc python by Toby de Havilland <toby.de.havilland@puremvc.org>
 
 from functools import partial
 
-class Duplicate(Exception): pass
-
-class NotFound(Exception): pass
-
-class InvalidMap(Exception): pass
-
-class FactoryOnly(Exception): pass
-
 class Singleton(object):
     """singleton check. only instantiates when passed a string key"""
 
     def __init__(self, *args):
-        if args[-1] is not 'there_can_be_only_one':
-            raise FactoryOnly('singletons cant be instantiated directly')
-
+        assert args[-1] is 'there_can_be_only_one', 'singletons cant be instantiated directly'
 
 class Controller(Singleton):
     """singleton. manages controller objects"""
@@ -33,18 +23,12 @@ class Controller(Singleton):
         self.command_map = { }
 
     def handle_note(self, note):
-        try:
-            cmd = self.command_map[note['name']]#().handle_note(note)
-            if isinstance(cmd, type) or hasattr(cmd, '__is_instance__'): # has attr check is for pyjs. isintance(cmd, type) fails in pyjs?.
-                cmd().handle_note(note) # class based controller
-            else:
-                cmd(get_facade()) # function based controller
-        except KeyError:
-            raise NotFound('no such command: %s' % note['name'])
+        assert note['name'] in self.command_map, 'no such command: {0}'.format(note['name'])
+        cmd = self.command_map[note['name']]
+        cmd(get_facade(), note)
 
     def register_command(self, name, cmd): # cmd is a controller function or a controller class
-        if name in self.command_map:
-            raise Duplicate('there is already a command with name %s: %s' % (name, self.command_map[name]))
+        assert name not in self.command_map, 'there is already a command with name {0}: {1}'.format(name, self.command_map[name])
         self.view.register_observer(name, { 'func': self.handle_note, 'obj': self })
         self.command_map[name] = cmd
 
@@ -61,6 +45,7 @@ class Model(Singleton):
         self.proxy_map = { }
 
     def register_proxy(self, proxy):
+        assert proxy.name not in self.proxy_map, 'proxy with name {0} already registered'.format(proxy.name)
         self.proxy_map[proxy.name] = proxy
         proxy.on_register()
         return proxy
@@ -83,13 +68,11 @@ class View(Singleton):
         self.mediator_map = { }
 
     def register_observer(self, name, observer):
-        if { 'func', 'obj' } != set(observer.keys()):
-            raise InvalidMap("observer should be {'func':f, 'obj':o}")
+        assert { 'func', 'obj' } == set(observer.keys()), "observer should be {'func':f, 'obj':o}"
         if not name in self.observer_map:
             self.observer_map[name] = []
         observers = self.observer_map[name]
-        if observer['obj'] in [o['obj'] for o in observers]:
-            raise Duplicate('obj: %s is already observing note.name: %s' % (observer['obj'], name))
+        assert observer['obj'] not in [o['obj'] for o in observers], 'obj: {0} is already observing note.name: {1}'.format(observer['obj'], name)
         observers.append(observer)
 
     def notify_observers(self, note):
@@ -104,8 +87,7 @@ class View(Singleton):
                 break
 
     def register_mediator(self, mediator):
-        if mediator.name in self.mediator_map:
-            raise Duplicate('mediator with name "%s" already registered.' % mediator.name)
+        assert mediator.name not in self.mediator_map, 'mediator with name "{0}" already registered.'.format(mediator.name)
         self.mediator_map[mediator.name] = mediator
         for interest in mediator.interests:
             self.register_observer(interest, { 'func': mediator.handle_note, 'obj': mediator })
@@ -117,8 +99,7 @@ class View(Singleton):
 
     def remove_mediator(self, name):
         mediator = self.get_mediator(name)
-        if not mediator:
-            raise NotFound('no mediator with name "%s" to remove.' % name)
+        assert mediator, 'no mediator with name "{0}" to remove.'.format(name)
         for interest in mediator.interests:
             self.remove_observer(interest, mediator)
         del self.mediator_map[name]
@@ -127,18 +108,12 @@ class View(Singleton):
 class Facade(Singleton):
     """singleton. instantiates the mvc and exposes their api's"""
 
-    def __init__(self, commands=[], *args): # commands = [ ('name', Command), ]
-        if not isinstance(commands, list): # when called without commands list, fix the signature
-            args = tuple([commands])
-            commands = []
+    def __init__(self, *args):
         Singleton.__init__(self, *args)
         self.controller = get_controller()
         self.model = get_model()
         self.view = get_view()
         self.build_api()
-        if isinstance(commands, list): # when instantiated without commands list, this is needed
-            for name, Command in commands:
-                self.register_command(name, Command)
 
     def build_api(self):
         self.register_command = self.controller.register_command
@@ -153,43 +128,38 @@ class Facade(Singleton):
     def send_note(self, name, body=None):
         self.view.notify_observers({ 'name': name, 'body': body })
 
+def command(facade, note):
+    """use this signature for a controller"""
+    pass
+
+def register_command(name):
+    """decorator to register a command with the controller"""
+
+    def register(cmd):
+        get_facade().register_command(name, cmd)
+        return cmd
+
+    return register
+
 class Generic(object):
     """inherit me for generic mvc object"""
 
-    def __init__(self, name):
-        self.name = name
-        self.facade = Facade()
+    name = ''
+
+    def __init__(self):
+        self.facade = get_facade()
         self.send_note = self.facade.send_note
 
     def on_register(self): pass
 
     def on_remove(self): pass
 
-def command(facade):
-    """use this signature for a function based controller"""
-    pass
-
-
-class Command(object):
-    """extend me for a class based controller"""
-
-    def __init__(self):
-        self.facade = get_facade()
-        self.send_note = self.facade.send_note
-
-    def handle_note(self, note): pass
-
 class Proxy(Generic):
     """extend me for a model object"""
-    name = ''
-
-    def __init__(self, name):
-        self.name = name
-        self.facade = get_facade()
+    pass
 
 class Mediator(Generic):
     """extend me for a view object """
-    name = ''
 
     interests = [] # must be defined in subclass, not dynamically inserted
 
