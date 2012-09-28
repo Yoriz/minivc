@@ -141,8 +141,8 @@ def register_command(name):
 
     return register
 
-class Generic(object):
-    """inherit me for generic mvc object"""
+class Proxy(object):
+    """extend me for a model object"""
 
     name = ''
 
@@ -154,11 +154,7 @@ class Generic(object):
 
     def on_remove(self): pass
 
-class Proxy(Generic):
-    """extend me for a model object"""
-    pass
-
-class Mediator(Generic):
+class Mediator(Proxy):
     """extend me for a view object """
 
     interests = [] # must be defined in subclass, not dynamically inserted
@@ -177,6 +173,5 @@ get_controller = partial(singleton_factory, 'controller', Controller)
 get_model = partial(singleton_factory, 'model', Model)
 get_view = partial(singleton_factory, 'view', View)
 get_facade = partial(singleton_factory, 'facade', Facade)
-get_facade.__doc__ = 'pass in a list of command pairs. ie, [ ("startup", StartupCommand), ]'
 
 

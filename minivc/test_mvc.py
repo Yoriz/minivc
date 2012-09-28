@@ -4,7 +4,7 @@ from nathants.lib.unittest import TestCase
 
 class TestMvc(TestCase):
     def setup(self):
-        minivc.mvc.singletons = { } # reset the singletons records
+        minivc.mvc.singletons = { } # reset the singletons records before each test
 
     def test_singleton(self):
         get_view() is get_view()
