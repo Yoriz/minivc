@@ -8,11 +8,12 @@ from argh import command
 import sys
 
 notes_file = 'notes.py'
+notes_name = notes_file.split('.')[0]
 commands_file = 'app.py'
 commands_var = 'commands'
 controller_file = 'controller.py'
 controller_dir = 'controller'
-command_template = "@register_command({0})\ndef {0}(facade, note):\n    pass\n\n"
+command_template = "@register_command({0}.{1})\ndef {1}(facade, note):\n    pass\n\n"
 
 # todo if aborting half way through due to error, roll back changes.
 
@@ -81,11 +82,11 @@ def get_root_path():
 
 def update_notes_file(name):
     with open(notes_file, 'a') as file: # write notes file
-        file.write("{0} = '{0}'\n".format(name))
+        file.write("{0} = '{0}'\n".format(notes_name,name))
 
 def update_controller_file(name):
     with open(controller_file, 'a') as file: # write controller file
-        file.writelines(command_template.format(name))
+        file.writelines(command_template.format(notes_name, name))
 
 def add_new_command_file(file_path, name, root):
     path = join(root, file_path)
