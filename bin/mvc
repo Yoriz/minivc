@@ -82,7 +82,7 @@ def get_root_path():
 
 def update_notes_file(name):
     with open(notes_file, 'a') as file: # write notes file
-        file.write("{0} = '{0}'\n".format(notes_name,name))
+        file.write("{0} = '{0}'\n".format(name,name))
 
 def update_controller_file(name):
     with open(controller_file, 'a') as file: # write controller file
