@@ -3,7 +3,7 @@ from setuptools import find_packages
 
 setup(
     name='minivc',
-    version='0.1.04',
+    version='0.1.05',
     author='Nathan ToddStone',
     author_email='me@nathants.com',
     packages=find_packages(),
