@@ -17,15 +17,15 @@ class Controller(object):
         self.view = View()
 
     def handle_note(self, note):
-        assert note['name'] in self._command_map,\
+        assert note['name'] in self._command_map, \
                                     'no such command: {0}'.format(note['name'])
         cmd = self._command_map[note['name']]
         cmd(Facade(), note)
 
     def register_command(self, name, cmd): # cmd is a controller function or a controller class
-        assert name not in self._command_map,\
+        assert name not in self._command_map, \
                                 'there is already a command with name {0}: {1}'\
-                                .format(name,self._command_map[name])
+                                .format(name, self._command_map[name])
         self.view.register_observer(name, { 'func': self.handle_note,
                                            'obj': self })
         self._command_map[name] = cmd
@@ -38,13 +38,13 @@ class Controller(object):
 class Model(object):
     """singleton. manages model objects"""
     _shared_state = {}
-    _proxy_map = { }
+    _proxy_map = {}
 
     def __init__(self):
         self.__dict__ = self._shared_state
 
     def register_proxy(self, proxy):
-        assert proxy.name not in self._proxy_map,\
+        assert proxy.name not in self._proxy_map, \
                     'proxy with name {0} already registered'.format(proxy.name)
         self._proxy_map[proxy.name] = proxy
         proxy.on_register()
@@ -62,19 +62,19 @@ class Model(object):
 class View(object):
     """singleton. manages view objects"""
     _shared_state = {}
-    _observer_map = { }
-    _mediator_map = { }
+    _observer_map = {}
+    _mediator_map = {}
 
     def __init__(self):
         self.__dict__ = self._shared_state
 
     def register_observer(self, name, observer):
-        assert { 'func', 'obj' } == set(observer.keys()),\
+        assert { 'func', 'obj' } == set(observer.keys()), \
                                         "observer should be {'func':f, 'obj':o}"
         if not name in self._observer_map:
             self._observer_map[name] = []
         observers = self._observer_map[name]
-        assert observer['obj'] not in [o['obj'] for o in observers],\
+        assert observer['obj'] not in [o['obj'] for o in observers], \
                                 'obj: {0} is already observing note.name: {1}'.\
                                 format(observer['obj'], name)
         observers.append(observer)
@@ -91,7 +91,7 @@ class View(object):
                 break
 
     def register_mediator(self, mediator):
-        assert mediator.name not in self._mediator_map,\
+        assert mediator.name not in self._mediator_map, \
             'mediator with name "{0}" already registered.'.format(mediator.name)
         self._mediator_map[mediator.name] = mediator
         for interest in mediator.interests:
@@ -129,8 +129,8 @@ class Facade(object):
         self.get_proxy = self.model.get_proxy
         self.get_mediator = self.view.get_mediator
 
-    def send_note(self, name, body=None):
-        self.view.notify_observers({ 'name': name, 'body': body })
+    def send_note(self, name, body=None, uid=None):
+        self.view.notify_observers({ 'name': name, 'body': body , 'uid': uid})
 
 def command(facade, note):
     """use this signature for a controller"""
